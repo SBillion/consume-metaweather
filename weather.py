@@ -13,6 +13,7 @@ def main():
     """
     pass
 
+
 def get_city_woeid(city) -> dict:
     """
     Get city woeid from metaweather API
@@ -33,7 +34,7 @@ def get_city_woeid(city) -> dict:
                 )
             ]
             city_info = inquirer.prompt(cities_pompted)
-            city_woeid = city_info['cities']
+            city_woeid = city_info["cities"]
         elif len(items) == 1:
             city_woeid = items[0]["woeid"]
         return city_woeid
@@ -46,11 +47,23 @@ def get_city_woeid(city) -> dict:
     except requests.exceptions.RequestException as e:
         click.echo("Something goes wrong", e)
 
+
 def get_weather_on_location(woeid):
     url_format = "{}location/{}/".format(URL_BASE, woeid)
     try:
         response = requests.get(url_format)
-        click.echo(response.json())
+        consolidated_weather = response.json()["consolidated_weather"]
+        rain_days = [
+            (c["applicable_date"], c["weather_state_name"])
+            for c in consolidated_weather
+            if c["weather_state_abbr"] in ["hr", "s", "lr"]
+        ]
+        if rain_days:
+            click.echo("It's going to rain the following days")
+            for r in rain_days:
+                click.echo("{} : {}".format(r[0], r[1]))
+        else:
+            click.echo("No rain in the next days")
     except requests.exceptions.HTTPError as e:
         click.echo("Http Error:", e)
     except requests.exceptions.ConnectionError as e:
@@ -64,7 +77,7 @@ def get_weather_on_location(woeid):
 @main.command()
 @click.option("--city", help="The city you want to know if it's raining", prompt="City")
 @click.pass_context
-def is_it_raining(ctx, city):
+def rain_in_future(ctx, city):
     """ if the state of weather in the asking city is the one excepted or not"""
 
     city_woeid = get_city_woeid(city)
@@ -72,10 +85,8 @@ def is_it_raining(ctx, city):
         city = click.prompt(
             "There is no city with this name. Enter a correct city name"
         )
-        ctx.invoke(is_it_raining, city=city)
-    click.echo(city_woeid)
+        ctx.invoke(rain_in_future, city=city)
     get_weather_on_location(city_woeid)
-
 
 
 if __name__ == "__main__":
