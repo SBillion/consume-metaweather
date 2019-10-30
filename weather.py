@@ -14,7 +14,7 @@ def main():
     pass
 
 
-def get_city_woeid(city) -> dict:
+def get_city_woeid(city) -> int:
     """
     Get city woeid from metaweather API
     """
@@ -48,7 +48,7 @@ def get_city_woeid(city) -> dict:
         click.echo("Something goes wrong", e)
 
 
-def get_weather_on_location(woeid):
+def get_rain_days_on_location(woeid):
     url_format = "{}location/{}/".format(URL_BASE, woeid)
     try:
         response = requests.get(url_format)
@@ -58,12 +58,7 @@ def get_weather_on_location(woeid):
             for c in consolidated_weather
             if c["weather_state_abbr"] in ["hr", "s", "lr"]
         ]
-        if rain_days:
-            click.echo("It's going to rain the following days")
-            for r in rain_days:
-                click.echo("{} : {}".format(r[0], r[1]))
-        else:
-            click.echo("No rain in the next days")
+        return rain_days
     except requests.exceptions.HTTPError as e:
         click.echo("Http Error:", e)
     except requests.exceptions.ConnectionError as e:
@@ -86,7 +81,13 @@ def rain_in_future(ctx, city):
             "There is no city with this name. Enter a correct city name"
         )
         ctx.invoke(rain_in_future, city=city)
-    get_weather_on_location(city_woeid)
+    rain_days = get_rain_days_on_location(city_woeid)
+    if rain_days:
+        click.echo("It's going to rain the following days")
+        for r in rain_days:
+            click.echo("{} : {}".format(r[0], r[1]))
+    else:
+        click.echo("No rain in the next days")
 
 
 if __name__ == "__main__":
